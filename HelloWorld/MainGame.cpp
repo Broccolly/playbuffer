@@ -17,6 +17,7 @@ enum Agent8State
 struct GameState
 {
 	int score;
+	float timer = 0;
 	Agent8State agent8State = STATE_APPEAR;
 };
 
@@ -41,6 +42,7 @@ void UpdateCoinsAndStars();
 void UpdateLasers();
 void UpdateDestroyed();
 void UpdateAgent8();
+void UpdateTimer(float elapsedTime);
 // The entry point for a PlayBuffer program
 void MainGameEntry(PLAY_IGNORE_COMMAND_LINE)
 {
@@ -64,10 +66,14 @@ bool MainGameUpdate(float elapsedTime)
 	UpdateCoinsAndStars();
 	UpdateLasers();
 	UpdateDestroyed();
+	UpdateTimer(elapsedTime);
 	Play::DrawFontText("64px", "ARROW KEYS TO MOVE UP AND DOWN AND SPACE TO FIRE",
 		{ DISPLAY_WIDTH / 2, DISPLAY_HEIGHT - 30 }, Play::CENTRE);
 	Play::DrawFontText("132px", "SCORE: " + std::to_string(gameState.score),
 		{ DISPLAY_WIDTH / 2, 50 }, Play::CENTRE);
+	Play::DrawFontText("132px", "TIME: " + std::to_string((int)gameState.timer),
+		{ DISPLAY_WIDTH -10 , 50 }, Play::RIGHT);
+
 	Play::PresentDrawingBuffer();
 	return Play::KeyDown(VK_ESCAPE);
 }
@@ -333,10 +339,16 @@ void UpdateAgent8()
 			obj_agent8.frame = 0;
 			Play::StartAudioLoop("music");
 			gameState.score = 0;
+			gameState.timer = 0.0f;
 
 			for (int id_obj : Play::CollectGameObjectIDsByType(TYPE_TOOL))
 			{
 				Play::GetGameObject(id_obj).type = TYPE_DESTROYED;
+			}
+
+			for (int id_obj : Play::CollectGameObjectIDsByType(TYPE_COIN))
+			{
+				Play::GetGameObject(id_obj).type = TYPE_DESTROYED; // Added to destroy coins as well as tools on restart
 			}
 			break;
 		}
@@ -356,4 +368,12 @@ void UpdateAgent8()
 	}
 	Play::DrawLine({ obj_agent8.pos.x, 0 }, obj_agent8.pos, Play::cWhite);
 	Play::DrawObjectRotated(obj_agent8);
+}
+
+void UpdateTimer(float elapsedTime)
+{
+	if (gameState.agent8State == STATE_PLAY)
+	{
+		gameState.timer += elapsedTime;
+	}
 }
